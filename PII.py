@@ -77,7 +77,7 @@ def mask_pii(text, aggregate_redaction=True):
 # Example usage
 if __name__ == "__main__":
     
-    text = "My name is Dhanushkumar and I live at Chennai. My phone number is +9190803470. My email id is dkumar@gmail.com. I was born on 01/01/2000."
+    text = "My name is Pratham and I live at Chennai. My phone number is +9190803470. My email id is pratham@gmail.com. I was born on 01/01/2000."
 
     print("Aggregated Redaction:")
     print(mask_pii(text, aggregate_redaction=True))
