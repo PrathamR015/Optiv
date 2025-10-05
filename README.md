@@ -182,22 +182,3 @@ pip install torch transformers
 * Integrate with **document redaction** (PDF, DOCX)
 
 ---
-
-## 📄 License
-
-This project is released under the **MIT License**.
-You are free to use, modify, and distribute it with attribution.
-
----
-
-## 🧑‍💻 Author
-
-**Pratham Raval**
-Built with ❤️ using PyTorch and Hugging Face Transformers.
-
-```
-
----
-
-Would you like me to include **badges (Python, Hugging Face, License, GPU support)** and a **screenshot/demo output** section for a more polished GitHub presentation?
-```
