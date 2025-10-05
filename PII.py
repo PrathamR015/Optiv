@@ -5,7 +5,7 @@ from transformers import AutoTokenizer, AutoModelForTokenClassification
 tokenizer = AutoTokenizer.from_pretrained("iiiorg/piiranha-v1-detect-personal-information")
 model = AutoModelForTokenClassification.from_pretrained("iiiorg/piiranha-v1-detect-personal-information")
 
-# Set device (GPU if available)
+# Set device (GPU if available, else CPU)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
 
@@ -15,7 +15,7 @@ def mask_pii(text, aggregate_redaction=True):
         return "[redacted]"
 
     # Tokenize and run model
-    inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True).to(device)
+    inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True, max_length=512).to(device)
     with torch.no_grad():
         outputs = model(**inputs)
     predictions = torch.argmax(outputs.logits, dim=-1)[0].tolist()
@@ -37,13 +37,16 @@ def mask_pii(text, aggregate_redaction=True):
             continue  # skip special tokens
 
         label = model.config.id2label[pred_label_idx]
+        # Clean up label (remove "I-" prefix for readability)
+        if label.startswith("I-"):
+            label = label.replace("I-", "")
+
         if label != 'O':
             if prev_label == 'O':
                 # Entering a PII span
                 if last_idx < start:
                     out_chars.append(text[last_idx:start])
                 current_label = label
-            # Continue masking
         else:
             if prev_label != 'O':
                 # Leaving a PII span
@@ -62,11 +65,15 @@ def mask_pii(text, aggregate_redaction=True):
     return ''.join(out_chars)
 
 
-# Example usage
-example_text = "My name is Dhanushkumar and I live at Chennai. My phone number is +9190803470. My email id is dkumar@gmail.com. I was born on 01/01/2000."
+if __name__ == "__main__":
+    while True:
+        user_text = input("\nEnter text to check for PII (or type 'exit' to quit):\n> ")
+        if user_text.lower() in ["exit", "quit", "q"]:
+            print("Exiting program...")
+            break
 
-print("Aggregated Redaction:")
-print(mask_pii(example_text, aggregate_redaction=True))
+        print("\nAggregated Redaction:")
+        print(mask_pii(user_text, aggregate_redaction=True))
 
-print("\nDetailed Redaction:")
-print(mask_pii(example_text, aggregate_redaction=False))
+        print("\nDetailed Redaction:")
+        print(mask_pii(user_text, aggregate_redaction=False))
