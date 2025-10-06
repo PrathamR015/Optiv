@@ -20,7 +20,7 @@ def mask_pii(text, aggregate_redaction=True):
         return_tensors="pt",
         truncation=True,
         padding=True,
-        max_length=512  # 👈 Fix for truncation warning
+        max_length=512 
     ).to(device)
 
     with torch.no_grad():
@@ -46,7 +46,7 @@ def mask_pii(text, aggregate_redaction=True):
     for span, token, pred_label_idx in zip(offset_mapping, tokens, predictions):
         start, end = span
         if start == end:
-            continue  # skip special tokens
+            continue  
 
         label = model.config.id2label[pred_label_idx]
         if label.startswith("I-"):
@@ -74,7 +74,6 @@ def mask_pii(text, aggregate_redaction=True):
     return ' '.join(out_chars).replace("  ", " ").strip()
 
 
-# Example usage
 if __name__ == "__main__":
     
     text = "My name is Pratham and I live at Chennai. My phone number is +9190803470. My email id is pratham@gmail.com. I was born on 01/01/2000."
