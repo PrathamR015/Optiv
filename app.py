@@ -1,14 +1,27 @@
+import streamlit as st
 import re
 import torch
 from transformers import AutoTokenizer, AutoModelForTokenClassification
 
-# Load model
-tokenizer = AutoTokenizer.from_pretrained("iiiorg/piiranha-v1-detect-personal-information")
-model = AutoModelForTokenClassification.from_pretrained("iiiorg/piiranha-v1-detect-personal-information")
+# -------------------------
+# 🚀 LOAD MODEL (CACHED)
+# -------------------------
+@st.cache_resource
+def load_model():
+    tokenizer = AutoTokenizer.from_pretrained(
+        "iiiorg/piiranha-v1-detect-personal-information"
+    )
+    model = AutoModelForTokenClassification.from_pretrained(
+        "iiiorg/piiranha-v1-detect-personal-information"
+    )
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model.to(device)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
 
+    return tokenizer, model, device
+
+
+tokenizer, model, device = load_model()
 
 # -------------------------
 # 🔍 REGEX PATTERNS
@@ -26,7 +39,7 @@ def mask_with_regex(text):
 
 
 # -------------------------
-# 🤖 MODEL BASED MASKING
+# 🤖 MODEL MASKING
 # -------------------------
 def model_mask(text):
     inputs = tokenizer(
@@ -60,10 +73,12 @@ def model_mask(text):
 
     for span, token, pred_label_idx in zip(offset_mapping, tokens, predictions):
         start, end = span
+
         if start == end:
             continue
 
         label = model.config.id2label[pred_label_idx]
+
         if label.startswith("I-"):
             label = label.replace("I-", "")
 
@@ -90,29 +105,58 @@ def model_mask(text):
 
 
 # -------------------------
-# 🚀 FINAL HYBRID FUNCTION
+# 🔐 FINAL MASK FUNCTION
 # -------------------------
-def mask_pii(text, aggregate_redaction=False):
-
-    # Step 1: Regex masking first (HIGH precision)
+def mask_pii(text, aggregate=False):
+    # Step 1: Regex masking (phones, email, date)
     text = mask_with_regex(text)
 
-    if aggregate_redaction:
-        return "[redacted]"
+    if aggregate:
+        return "[REDACTED TEXT]"
 
-    # Step 2: Model masking
+    # Step 2: Model masking (names, locations, etc.)
     text = model_mask(text)
 
     return text
 
 
 # -------------------------
-# TEST
+# 🎨 STREAMLIT UI
 # -------------------------
-if __name__ == "__main__":
-    text = """My name is Pratham and I live at Chennai.
-    My phone number is +9190803470.
-    My email id is pratham@gmail.com.
-    I was born on 01/01/2000."""
+st.set_page_config(page_title="PII Masking App", layout="centered")
 
-    print(mask_pii(text, aggregate_redaction=False))
+st.title("🔐 PII Masking App")
+st.markdown("Mask personal information using AI + Regex")
+
+# Input
+text_input = st.text_area("✍️ Enter your text:", height=200)
+
+# Mode selection
+mode = st.radio(
+    "Select Mode:",
+    ["Detailed Masking", "Full Redaction"]
+)
+
+# Button
+if st.button("🚀 Mask PII"):
+    if text_input.strip():
+
+        if mode == "Full Redaction":
+            result = mask_pii(text_input, aggregate=True)
+        else:
+            result = mask_pii(text_input, aggregate=False)
+
+        st.subheader("✅ Output")
+        st.code(result)
+
+    else:
+        st.warning("⚠️ Please enter some text.")
+
+
+# -------------------------
+# 💡 EXAMPLE
+# -------------------------
+with st.expander("💡 Example Input"):
+    st.write(
+        "My name is Pratham, phone number is +9190803470, email is pratham@gmail.com, born on 01/01/2000"
+    )
